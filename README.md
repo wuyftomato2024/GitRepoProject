@@ -1,12 +1,17 @@
-# CRUD + Sync Practice App
+# GitRepoProject
 
-A small backend practice project built with **Python**, **FastAPI**, **SQLAlchemy**, and **MySQL**.
+## Overview
 
-This project started as a basic CRUD app and was later extended into a small **data sync / data comparison app**.
+GitRepoProject is a FastAPI backend project for syncing GitHub repository data into a local MySQL database.
 
-It compares external user data with database data and applies business rules to update the database.
+The current workflow is:
 
----
+1. Accept a GitHub username
+2. Load repository data
+3. Compare the incoming data with local database records
+4. Insert new repositories
+5. Update changed repository fields
+6. Mark missing repositories as deleted
 
 ## Tech Stack
 
@@ -14,102 +19,92 @@ It compares external user data with database data and applies business rules to 
 - FastAPI
 - SQLAlchemy
 - MySQL
+- PyMySQL
 - Pydantic
+- Requests
+- Uvicorn
 
----
+## File Structure
 
-## Project Features
+```text
+GitRepoProject/
+|-- .gitignore
+|-- README.md
+|-- READMECN.md
+|-- requirements.txt
+`-- app/
+    |-- main.py
+    |-- core/
+    |   `-- db_table.py
+    |-- mock_data/
+    |   `-- gitRepo_mock_data.py
+    |-- repositories/
+    |   `-- repositories.py
+    |-- schema/
+    |   |-- database.py
+    |   `-- model.py
+    `-- service/
+        |-- dataSync_service.py
+        `-- github_service.py
+```
 
-### User Functions
-- Create user
-- Get user
-- Get all users
-- Patch user
-- Delete user
+## Main Files
 
-### Group Member Functions
-- Create group member
-- Delete group member
-- Get group member list
+- `app/main.py`
+  FastAPI entrypoint. Creates tables, manages DB sessions, and exposes the sync API.
 
-### Sync Functions
-- Read external test data
-- Read current DB data
-- Convert DB data into dict maps
-- Compare external data with DB data
-- Create or update users
-- Create or delete group members
-- Return sync summary counts
+- `app/service/dataSync_service.py`
+  Core sync logic for comparing incoming repo data with local DB data.
 
----
+- `app/service/github_service.py`
+  GitHub API fetch helper for loading repository data.
 
-## Database Tables
+- `app/repositories/repositories.py`
+  Data access layer for reading and updating `github_repos` records.
 
-### `users`
-Stores user master data.
+- `app/core/db_table.py`
+  SQLAlchemy table model definition.
+
+- `app/schema/database.py`
+  Database engine and session configuration.
+
+- `app/mock_data/gitRepo_mock_data.py`
+  Mock repository data used during local sync verification.
+
+## API
+
+### Sync Endpoint
+
+```text
+GET /repo_name?github_user=<username>
+```
+
+Behavior:
+
+- Query existing records for the given GitHub user
+- Load repository data
+- Compare repositories by `repo_full_name`
+- Create new rows for new repositories
+- Update changed metadata such as stars, forks, description, and language
+- Mark missing repositories with `is_deleted = True`
+
+## Database Table
+
+### `github_repos`
 
 Main fields:
+
 - `id`
-- `userid`
-- `user_name`
-- `is_active`
+- `github_user`
+- `repo_name`
+- `repo_full_name`
+- `description`
+- `language`
+- `forks`
+- `repo_url`
+- `stars`
+- `is_deleted`
 - `updated_at`
-
-### `group_members`
-Stores group membership data.
-
-Main fields:
-- `id`
-- `userid`
-- `user_name`
-- `group_name`
-- `updated_at`
-
----
-
-## Sync Logic
-
-### Users
-- If `userid` already exists in the `users` table, compare `updated_at`
-- If the external data is newer, update the user
-- If `userid` does not exist, create a new user
-
-### Group Members
-- If external `is_active = True`, the user should exist in `group_members`
-- If external `is_active = False`, the user should not exist in `group_members`
-
-This logic is handled by comparing:
-- external data
-- `users` table data
-- `group_members` table data
-
----
-
-## Why `dict map` is used
-
-To make sync logic simpler, DB data is converted into dictionaries like:
-
-- `db_user_map[userid]`
-- `db_member_map[userid]`
-
-This helps:
-- avoid unnecessary double loops
-- make existence checks easier
-- simplify create / patch / delete decisions
-
----
-
-## Example Sync Result
-
-The sync function returns summary counts such as:
-
-- `hit`
-- `user_patch`
-- `user_create`
-- `member_create`
-- `member_delete`
-
----
 
 ## How to Run
 
@@ -119,67 +114,31 @@ The sync function returns summary counts such as:
 pip install -r requirements.txt
 ```
 
-### 2. Make sure MySQL is running
+### 2. Prepare MySQL
 
-Please make sure your MySQL server is running before starting the app.
+The current project uses the database connection defined in:
 
-### 3. Start the FastAPI server
+- `app/schema/database.py`
 
-```bash
-uvicorn main:app --reload
+Current connection string:
+
+```text
+mysql+pymysql://root:tomato123@localhost/test_db
 ```
 
-### 4. Open Swagger UI
+### 3. Start the server
+
+```bash
+uvicorn app.main:app --reload
+```
+
+### 4. Open the API
 
 ```text
 http://127.0.0.1:8000/docs
 ```
 
----
-
-## API Endpoints
-
-### Users
-- `POST /users` - create a new user
-- `GET /users/{userid}` - get a user by userid
-- `GET /users` - get all users
-- `PATCH /users/{userid}` - update user status
-- `DELETE /users/{userid}` - delete a user
-
-### Group Members
-- `POST /group-members` - create a group member
-- `DELETE /group-members/{userid}` - delete a group member
-- `GET /group-members` - get all group members
-
-### Sync
-- `POST /sync` - run the sync process
-
----
-
-## What I Practiced in This Project
-
-- FastAPI API development
-- SQLAlchemy CRUD operations
-- MySQL table design
-- Sync logic implementation
-- Business logic with `if`, `for`, and `dict`
-- Comparing external data with DB data
-- Updating in-memory maps after DB changes
-
----
-
-## Future Improvements
-
-- Refactor sync logic into smaller functions
-- Replace debug `print()` with proper logging
-- Improve project documentation
-- Add a cleaner README with API examples
-
----
-
 ## Notes
 
-This project is a practice app for learning backend development and sync logic.
-
-It is not just a basic CRUD project.  
-It was extended to simulate a small real-world data sync workflow.
+- The project is focused on local sync logic and repository comparison.
+- Repository deletion is handled as a soft delete through the `is_deleted` field.
