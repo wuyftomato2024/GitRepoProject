@@ -4,11 +4,15 @@ from app.mock_data.gitRepo_mock_data import get_mock_repos
 
 def syncRepo(db ,github_user):
     sql_repos = get_DB_repo(db ,github_user)
-    # git_repos = fetch_github_repos(github_user)
-    git_repos = get_mock_repos()
+    git_repos = fetch_github_repos(github_user)
+    # git_repos = get_mock_repos()
 
     sql_repo_map = {}
     git_repo_map = {} 
+
+    created_count = 0
+    updated_count = 0
+    deleted_count = 0
 
     for sql_repo in sql_repos :
 
@@ -42,6 +46,8 @@ def syncRepo(db ,github_user):
                 stars = stargazers_count,
                 is_deleted = False
                 )
+            
+            created_count += 1
         else :
             if (sql_repo_map[full_name]["stars"] != stargazers_count 
                 or sql_repo_map[full_name]["forks"] != forks_count 
@@ -56,13 +62,20 @@ def syncRepo(db ,github_user):
                     description = description ,
                     language = language
                     )
+                
+                updated_count += 1
 
     for sql_repo in sql_repos :
         sql_repo_name = sql_repo["repo_full_name"]
         if sql_repo_name not in git_repo_map :
             update_sqlRepo(db=db, repo_full_name=sql_repo_name)
+            deleted_count += 1
 
-    return ("ok")
+    return ({"status" : "ok" ,
+             "created_count" : created_count ,
+             "updated_count" : updated_count ,
+             "deleted_count" : deleted_count
+             })
 
 
 

@@ -1,6 +1,6 @@
 from fastapi import HTTPException 
 from app.schema.model import apiResponse
-from app.core.db_table import User ,GroupMember ,GithubRepo
+from app.core.db_table import GithubRepo
 
 # ***********
 # 创建user

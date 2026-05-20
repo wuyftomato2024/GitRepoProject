@@ -47,10 +47,10 @@ def index():
 # def get_github_repo(github_user :str):
 #     return fetch_github_repos(github_user)
 
-# @app.get("/old_repo")
-# def get_github_repo(github_user :str ,db=Depends(get_db)):
-#     return get_DB_repo(db ,github_user)
+@app.get("/old_repo")
+def get_github_repo(github_user :str ,db=Depends(get_db)):
+    return get_DB_repo(db ,github_user)
 
-@app.get("/repo_name")
-def get_repo_name(github_user :str ,db=Depends(get_db)):
+@app.post("/get/{github_user}")
+def get_repo_name(github_user :str | None =None ,db=Depends(get_db)):
     return syncRepo(db = db,github_user =github_user)
